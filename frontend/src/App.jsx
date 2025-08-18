@@ -9,8 +9,9 @@ import Profile from "./pages/Profile";
 import { useAuthStore } from "./store/useAuthStore.js";
 
 const App = ()=>{
-  const { authUser, isCheckingAuth, checkAuth  } = useAuthStore();
+  const { authUser, isCheckingAuth, checkAuth ,onlineUsers } = useAuthStore();
 
+  console.log(onlineUsers);
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
@@ -30,7 +31,7 @@ const App = ()=>{
       
       <Navbar />
       <Routes>
-        <Route path="/" element={authUser ? <HomePage user={authUser} /> : <Navigate to="/login" />} />
+        <Route path="/" element={authUser ? <HomePage authUser={authUser} /> : <Navigate to="/login" />} />
         <Route path="/signup" element={authUser ? <Navigate to="/" /> : <Signup />} />
         <Route path="/login" element={authUser ? <Navigate to="/" /> : <Login />} />
         <Route path="/settings" element={authUser ? <Settings /> : <Navigate to="/login" />} />

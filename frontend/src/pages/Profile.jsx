@@ -1,11 +1,9 @@
-import { use, useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import instance from "../lib/axios";
 import { showToast } from "../lib/toast";
-
-// Default image from assets
-import chatIcon from "../assets/profile.png";
+import chatIcon from "../assets/profile.png"; // default profile image
 
 const Profile = ({ name, email }) => {
   const { authUser, checkAuth } = useAuthStore();
@@ -13,45 +11,65 @@ const Profile = ({ name, email }) => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef();
 
+  // Utility: Compress image to target size (max 50KB)
+  const compressImage = (file, maxSizeKB = 50) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          // Resize image (optional, here keeping original dimensions)
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0, img.width, img.height);
+
+          let quality = 0.9;
+          let base64 = canvas.toDataURL("image/jpeg", quality);
+
+          // Keep reducing quality until under target size
+          while (base64.length / 1024 > maxSizeKB && quality > 0.1) {
+            quality -= 0.05;
+            base64 = canvas.toDataURL("image/jpeg", quality);
+          }
+
+          resolve(base64);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle file upload and update profile pic
   const handleFileChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+    const file = e.target.files[0];
+    if (!file) return;
 
-  // File type validation
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-  if (!allowedTypes.includes(file.type)) {
-    showToast("Invalid file type. Please select a jpeg, png, jpg, or webp image.", "error");
-    return;
-  }
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      showToast("Invalid file type. Please select jpeg, png, jpg, or webp.", "error");
+      return;
+    }
 
-  // File size validation (max 50KB)
-  if (file.size > 50 * 1024) {
-    showToast("File too large. Max size is 50KB.", "error");
-    return;
-  }
+    setLoading(true);
+    showToast("Uploading profile photo...", "info", 3000);
 
-  setLoading(true);
-  showToast("Uploading profile photo...", "info",3000);
-
-  try {
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result;
+    try {
+      let base64 = await compressImage(file, 50); // compress to ≤50KB
       const res = await instance.put("/auth/update-pic", { profilepic: base64 });
       setProfilePic(res.data.profilepic);
       showToast("Profile photo updated!", "success");
       checkAuth();
-    };
-    reader.readAsDataURL(file);
-  } catch (err) {
-    showToast("Failed to update profile photo.", "error");
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (err) {
+      showToast("Failed to update profile photo.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Show either user's profilepic or default asset
   const displayPic = profilePic || chatIcon;
 
   return (
@@ -63,6 +81,7 @@ const Profile = ({ name, email }) => {
           alt="Profile"
           className="w-40 h-40 rounded-full border-4 border-blue-500 object-cover bg-gray-700"
         />
+
         {/* Camera Icon */}
         <button
           type="button"
@@ -73,6 +92,7 @@ const Profile = ({ name, email }) => {
         >
           <Camera className="text-white" size={28} />
         </button>
+
         {/* Hidden File Input */}
         <input
           type="file"
@@ -81,12 +101,14 @@ const Profile = ({ name, email }) => {
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
+
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
       </div>
+
       {/* Full Name */}
       <div className="mb-4 w-full max-w-md">
         <label htmlFor="fullname" className="block text-sm font-medium text-gray-300 mb-1">
@@ -100,6 +122,7 @@ const Profile = ({ name, email }) => {
           disabled
         />
       </div>
+
       {/* Email */}
       <div className="mb-4 w-full max-w-md">
         <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">

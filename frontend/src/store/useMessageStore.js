@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import instance from '../lib/axios';
+import { useAuthStore } from './useAuthStore';
 
 export const useMessageStore = create((set, get) => ({
   users: null,
   messages: null,
   isloading: false,
   isSending: false,
+  SelectedUser:null,
 
   getUsers: async () => {
     try {
@@ -23,6 +25,8 @@ export const useMessageStore = create((set, get) => ({
     try {
       const response = await instance.get(`/message/${user._id}`);
       set({ messages: response.data });
+      set({ SelectedUser: user });
+
     } catch (error) {
       console.error("Error fetching messages:", error);
     } finally {
@@ -47,4 +51,30 @@ export const useMessageStore = create((set, get) => ({
       set({ isSending: false });
     }
   },
+
+  subscribeToMessages: () => {
+  const socket = useAuthStore.getState().socket;
+
+  // remove old listeners before adding new one
+  socket.off("newMessage");
+
+  socket.on("newMessage", (message) => {
+    const { SelectedUser, messages } = get();
+
+    // only append if message belongs to the currently selected user
+    if (!SelectedUser) return;
+    if (
+      message.sender === SelectedUser._id ||
+      message.receiver === SelectedUser._id
+    ) {
+      set({ messages: [...(messages || []), message] });
+    }
+  });
+},
+
+unsubscribeToMessages: () => {
+  const socket = useAuthStore.getState().socket;
+  socket.off("newMessage"); // clean up properly
+}
+
 }));
