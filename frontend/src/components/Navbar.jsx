@@ -7,7 +7,7 @@ const Navbar = () => {
   return (
     <div className="flex justify-between items-center p-4  text-white">
     <div className='flex opacity-50 cursor-pointer' onClick={() => window.location.href="/"}>
-    <img src='./src/assets/chat.png' alt='Logo' className="h-8 " />
+    <img src='https://res.cloudinary.com/dhaaa7yzr/image/upload/v1755500549/vpovgzy13gvwpthco76g.png' alt='Logo' className="h-8 " />
     <span className="text-lg font-semibold">Chatty</span>
     </div>
 
