@@ -6,6 +6,7 @@
     and <b>Socket.IO</b> for instant messaging.<br>
     It supports <b>user authentication, online/offline status, image messaging with compression, and search functionality</b>.
   </p>
+  <a href="https://chatty-try6.onrender.com">Click for Website Demo</a>
 
   <h2>🚀 Features</h2>
   <ul>
