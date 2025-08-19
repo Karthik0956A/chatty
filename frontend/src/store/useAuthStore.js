@@ -3,6 +3,7 @@ import instance from '../lib/axios';
 import { showToast } from '../lib/toast';
 import { Socket ,io} from 'socket.io-client';
 
+const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:3000/api" : "/";
 export const useAuthStore = create((set,get) => ({
   authUser: null,
   isCheckingAuth:true,
@@ -94,7 +95,7 @@ export const useAuthStore = create((set,get) => ({
   connectSocket:(userId)=>{
     const {authUser} = get();
     if(!authUser || get().socket?.connected) return;
-    const socket = io("http://localhost:3000",{
+    const socket = io(BASE_URL, {
       query:{
         userId:authUser._id,
       }

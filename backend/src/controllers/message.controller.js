@@ -36,10 +36,17 @@ export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id; // from auth middleware
     const receiverId = req.params.id;
-    const { message } = req.body;
-
-    if (!message || !receiverId) {
-      return res.status(400).json({ message: "Message and receiver required." });
+    const { message, image } = req.body;
+    let Imageurl = "";
+    if(image){
+      const uploadImage = await cloudinary.uploader.upload(image);
+      if(uploadImage){
+        Imageurl = await uploadImage.secure_url;
+      } 
+    }
+    
+    if (!receiverId) {
+      return res.status(400).json({ message: "Receiver required." });
     }
 
     const receiver = await User.findById(receiverId);
@@ -51,6 +58,7 @@ export const sendMessage = async (req, res) => {
       sender: senderId,
       receiver: receiverId,
       message,
+      image: Imageurl,
       createdAt: new Date(),
     });
 
@@ -66,3 +74,4 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ message: "Failed to send message.", error: err.message });
   }
 };
+

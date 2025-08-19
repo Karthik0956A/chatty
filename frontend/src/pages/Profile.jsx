@@ -3,7 +3,7 @@ import { Camera } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import instance from "../lib/axios";
 import { showToast } from "../lib/toast";
-import chatIcon from "../assets/profile.png"; // default profile image
+import chatIcon from "../assets/avatar.svg"; // default profile image
 
 const Profile = ({ name, email }) => {
   const { authUser, checkAuth } = useAuthStore();

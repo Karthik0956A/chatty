@@ -4,7 +4,6 @@ import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import { useAuthStore } from "./store/useAuthStore.js";
 
@@ -34,7 +33,6 @@ const App = ()=>{
         <Route path="/" element={authUser ? <HomePage authUser={authUser} /> : <Navigate to="/login" />} />
         <Route path="/signup" element={authUser ? <Navigate to="/" /> : <Signup />} />
         <Route path="/login" element={authUser ? <Navigate to="/" /> : <Login />} />
-        <Route path="/settings" element={authUser ? <Settings /> : <Navigate to="/login" />} />
         <Route path="/profile" element={authUser ? <Profile name={authUser.fullname} email={authUser.email} /> : <Navigate to="/login" />} />
       </Routes>
       

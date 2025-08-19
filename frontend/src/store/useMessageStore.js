@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import instance from '../lib/axios';
 import { useAuthStore } from './useAuthStore';
+import imageCompression from 'browser-image-compression';
 
 export const useMessageStore = create((set, get) => ({
   users: null,
   messages: null,
   isloading: false,
   isSending: false,
-  SelectedUser:null,
+  SelectedUser: null,
 
   getUsers: async () => {
     try {
@@ -34,7 +35,7 @@ export const useMessageStore = create((set, get) => ({
     }
   },
 
-  sendMessage: async (message, user) => {
+  sendMessage: async (message, image, user) => {
     // CHANGE: Add null check for user and user._id
     if (!user || !user._id) {
       console.error("No user selected for sending message.");
@@ -42,7 +43,7 @@ export const useMessageStore = create((set, get) => ({
     }
     set({ isSending: true });
     try {
-      const response = await instance.post(`/message/send/${user._id}`, { message });
+      const response = await instance.post(`/message/send/${user._id}`, { message, image });           
       const messages = get().messages || [];
       set({ messages: [...messages, response.data] });
     } catch (error) {
@@ -53,28 +54,28 @@ export const useMessageStore = create((set, get) => ({
   },
 
   subscribeToMessages: () => {
-  const socket = useAuthStore.getState().socket;
+    const socket = useAuthStore.getState().socket;
 
-  // remove old listeners before adding new one
-  socket.off("newMessage");
+    // remove old listeners before adding new one
+    socket.off("newMessage");
 
-  socket.on("newMessage", (message) => {
-    const { SelectedUser, messages } = get();
+    socket.on("newMessage", (message) => {
+      const { SelectedUser, messages } = get();
 
-    // only append if message belongs to the currently selected user
-    if (!SelectedUser) return;
-    if (
-      message.sender === SelectedUser._id ||
-      message.receiver === SelectedUser._id
-    ) {
-      set({ messages: [...(messages || []), message] });
-    }
-  });
-},
+      // only append if message belongs to the currently selected user
+      if (!SelectedUser) return;
+      if (
+        message.sender === SelectedUser._id ||
+        message.receiver === SelectedUser._id
+      ) {
+        set({ messages: [...(messages || []), message] });
+      }
+    });
+  },
 
-unsubscribeToMessages: () => {
-  const socket = useAuthStore.getState().socket;
-  socket.off("newMessage"); // clean up properly
-}
+  unsubscribeToMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket.off("newMessage"); // clean up properly
+  }
 
 }));
