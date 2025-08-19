@@ -11,21 +11,30 @@ const formatTimestamp = (isoString) => {
 };
 
 const HomePage = ({ authUser }) => {
-  const { getUsers, users, getMessages, messages, sendMessage, isloading, subscribeToMessages, unsubscribeToMessages } = useMessageStore();
+  const {
+    getUsers,
+    users,
+    getMessages,
+    messages,
+    sendMessage,
+    isloading,
+    subscribeToMessages,
+    unsubscribeToMessages,
+  } = useMessageStore();
   const { onlineUsers } = useAuthStore();
   const [currentUser, setCurrentUser] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const imageInputRef = useRef(null);
+  const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // 👉 create ref for message container
+  const imageInputRef = useRef(null);
   const msgContainerRef = useRef(null);
 
   useEffect(() => {
     getUsers();
   }, [getUsers, onlineUsers]);
 
-  // Subscribe to messages on mount
   useEffect(() => {
     subscribeToMessages();
     return () => {
@@ -33,14 +42,12 @@ const HomePage = ({ authUser }) => {
     };
   }, [subscribeToMessages, unsubscribeToMessages]);
 
-  // Fetch messages when currentUser changes
   useEffect(() => {
     if (currentUser && currentUser._id) {
       getMessages(currentUser);
     }
   }, [currentUser, getMessages]);
 
-  // 👉 Auto scroll when messages change
   useEffect(() => {
     if (msgContainerRef.current) {
       msgContainerRef.current.scrollTop = msgContainerRef.current.scrollHeight;
@@ -54,14 +61,9 @@ const HomePage = ({ authUser }) => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!currentUser || !currentUser._id) return;
-
-    // Prevent sending empty messages
-    if (!messageInput.trim() && !imageFile) {
-      return;
-    }
+    if (!messageInput.trim() && !imageFile) return;
 
     let base64Image = null;
-
     if (imageFile) {
       try {
         const options = {
@@ -91,27 +93,62 @@ const HomePage = ({ authUser }) => {
     }
   };
 
+  // Filter users based on search + online toggle
+  let filteredUsers = [];
+  if(users){
+  filteredUsers = users.filter((user) => {
+    const matchesSearch = user.fullname
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const isOnline = onlineUsers.includes(user._id);
+    return matchesSearch && (!showOnlineOnly || isOnline);
+  });
+  }
+
   return (
     <div className="flex h-screen">
       {/* User List */}
-      <div className="bg-gray-800 w-[30%] h-full overflow-y-auto p-4">
+      <div className="bg-gray-800 w-[30%] h-full overflow-y-auto p-4 flex flex-col">
         <h2 className="text-xl font-bold text-white mb-4">Users</h2>
-        {users && users.length > 0 ? (
-          users.map((user) => {
-            const isonline = onlineUsers.includes(user._id);
 
+        {/* Controls */}
+        <div className="flex gap-2 mb-3">
+          <button
+            className={`px-3 py-1 rounded text-sm font-medium ${
+              showOnlineOnly ? "bg-green-600 text-white" : "bg-gray-600 text-white"
+            }`}
+            onClick={() => setShowOnlineOnly((prev) => !prev)}
+          >
+            {showOnlineOnly ? "All Users" : "Online Users"}
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search users..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="p-2 mb-4 w-full rounded bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* User list items */}
+        {filteredUsers && filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => {
+            const isonline = onlineUsers.includes(user._id);
             return (
               <div
                 key={user._id}
-                className={`flex items-center gap-3 p-2 mb-2 rounded cursor-pointer ${currentUser?._id === user._id ? "bg-blue-600" : "bg-gray-700"
-                  }`}
+                className={`flex items-center gap-3 p-2 mb-2 rounded cursor-pointer ${
+                  currentUser?._id === user._id ? "bg-blue-600" : "bg-gray-700"
+                }`}
                 onClick={() => handleUserClick(user)}
               >
                 <img
                   src={user.profilepic ? user.profilepic : chatIcon}
                   alt={user.fullname}
-                  className={`w-12 h-12 rounded-full object-cover border-4 ${isonline ? "border-green-500" : ""
-                    }`}
+                  className={`w-12 h-12 rounded-full object-cover border-4 ${
+                    isonline ? "border-green-500" : ""
+                  }`}
                 />
                 <div>
                   <p className="text-white">{user.fullname}</p>
@@ -130,10 +167,13 @@ const HomePage = ({ authUser }) => {
       {/* Chat Area */}
       <div className="flex flex-col w-[70%] h-full bg-gray-900 p-4">
         <h2 className="text-xl font-bold text-white mb-4">
-          {currentUser?.fullname ? `Chat with ${currentUser.fullname}` : "Select a user to chat"}
+          {currentUser?.fullname
+            ? `Chat with ${currentUser.fullname}`
+            : "Select a user to chat"}
         </h2>
+
         <div
-          ref={msgContainerRef}   // 👈 added ref here
+          ref={msgContainerRef}
           className="flex flex-col gap-2 flex-1 overflow-y-auto bg-gray-800 rounded p-4 mb-4"
         >
           {isloading ? (
@@ -146,15 +186,25 @@ const HomePage = ({ authUser }) => {
               return (
                 <div
                   key={idx}
-                  className={`relative flex flex-col max-w-xs ${isMine ? "self-end" : "self-start"
-                    }`}
+                  className={`relative flex flex-col max-w-xs ${
+                    isMine ? "self-end" : "self-start"
+                  }`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-lg shadow ${isMine ? "bg-gradient-to-r from-red-500 to-yellow-500 text-white" : "bg-gradient-to-r from-blue-500 to-purple-500 text-gray-200"
-                      }`}
+                    className={`px-4 py-2 rounded-lg shadow ${
+                      isMine
+                        ? "bg-gradient-to-r from-red-500 to-yellow-500 text-white"
+                        : "bg-gradient-to-r from-blue-500 to-purple-500 text-gray-200"
+                    }`}
                   >
-                    {msg.image && <img src={msg.image} alt="Sent image" />}
-                    {msg.message} 
+                    {msg.image && (
+                      <img
+                        src={msg.image}
+                        alt="Sent image"
+                        className="mb-2 max-w-[200px] rounded"
+                      />
+                    )}
+                    {msg.message}
                   </div>
                   <div className="text-xs text-gray-300 mt-1 text-right">
                     {formatTimestamp(msg.createdAt)}
@@ -168,8 +218,10 @@ const HomePage = ({ authUser }) => {
         </div>
 
         {currentUser?._id && (
-          <form onSubmit={handleSendMessage} className="flex gap-2 items-center bg-gray-800 p-2 rounded-lg">
-            {/* Text Input */}
+          <form
+            onSubmit={handleSendMessage}
+            className="flex gap-2 items-center bg-gray-800 p-2 rounded-lg"
+          >
             <input
               type="text"
               className="flex-1 p-2 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -178,7 +230,6 @@ const HomePage = ({ authUser }) => {
               placeholder="Type your message..."
             />
 
-            {/* Hidden File Input */}
             <input
               id="imageUpload"
               type="file"
@@ -188,7 +239,6 @@ const HomePage = ({ authUser }) => {
               onChange={(e) => setImageFile(e.target.files[0])}
             />
 
-            {/* Image Upload Button */}
             <label
               htmlFor="imageUpload"
               className="cursor-pointer p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-white"
@@ -197,7 +247,6 @@ const HomePage = ({ authUser }) => {
               📎
             </label>
 
-            {/* Send Button */}
             <button
               type="submit"
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
